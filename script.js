@@ -1,6 +1,3 @@
-// Works on desktop, Android, iPhone, and iPad with no visible button.
-// iOS requires a user gesture to start audio; we use a one-time invisible overlay.
-
 document.addEventListener("DOMContentLoaded", () => {
   const onlyCandle = document.getElementById("onlyCandle");
 
@@ -8,18 +5,16 @@ document.addEventListener("DOMContentLoaded", () => {
   let baselineRMS = 0, baselineHF = 0, calibrated = false, started = false;
   let overlay = null;
 
-  // --- Helpers ---
   function computeRMS(uint8) {
     let sumSq = 0;
     for (let i = 0; i < uint8.length; i++) {
       const v = (uint8[i] - 128) / 128;
       sumSq += v * v;
     }
-    return Math.sqrt(sumSq / uint8.length) * 100; // ~0–100
+    return Math.sqrt(sumSq / uint8.length) * 100; 
   }
 
   function computeHighFreqAvg(freqData) {
-    // Focus on upper mid/high bins for "hiss"
     const start = Math.floor(freqData.length * 0.35);
     const end   = Math.floor(freqData.length * 0.9);
     let sum = 0, n = 0;
@@ -28,13 +23,12 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function createGestureGate() {
-    // One-time, invisible full-screen div that eats the first tap/click
     overlay = document.createElement("div");
     overlay.className = "gesture-gate";
     const start = async () => {
       if (started) return;
       started = true;
-      await initMic(true);     // call inside the gesture
+      await initMic(true);    
       if (overlay && overlay.parentNode) overlay.parentNode.removeChild(overlay);
       overlay = null;
     };
@@ -92,10 +86,9 @@ document.addEventListener("DOMContentLoaded", () => {
     const rms = computeRMS(td);
     const hf  = computeHighFreqAvg(fd);
 
-    // Adaptive + mobile-friendly thresholds
     const rmsThresh = Math.max(baselineRMS + 5, 10);
     const hfThresh  = Math.max(baselineHF  + 6, 14);
-    const hissStrong = hf > (baselineHF + 18);      // strong hiss alone
+    const hissStrong = hf > (baselineHF + 18);     
     const combined   = (hf > hfThresh) && (rms > rmsThresh || rms > baselineRMS + 12);
 
     return hissStrong || combined;
@@ -106,7 +99,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const tick = () => {
       if (!onlyCandle.classList.contains("out") && calibrated) {
         if (isBlowing()) {
-          onlyCandle.classList.add("out"); // flame off
+          onlyCandle.classList.add("out"); 
         }
       }
       rafId = requestAnimationFrame(tick);
@@ -116,7 +109,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
   async function initMic(fromGesture = false) {
     try {
-      // iOS usually requires this to be inside the gesture
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: {
           echoCancellation: false,
@@ -135,20 +127,14 @@ document.addEventListener("DOMContentLoaded", () => {
 
       startAnalyser(stream);
     } catch (err) {
-      // If we tried outside a gesture on iOS, fall back to the overlay
       if (!fromGesture) {
-        createGestureGate(); // captures the first tap to start mic
+        createGestureGate(); 
       }
-      // Optional: console logging for debugging
-      // console.log("Mic init error:", err && err.name, err && err.message);
     }
   }
 
-  // Try to start automatically (works on desktop/Android).
-  // If iOS blocks it, the overlay will take over on first tap.
   initMic(false);
 
-  // As an extra safety: if the context suspends, resume on any interaction
   const tryResume = async () => {
     if (audioContext && audioContext.state === "suspended") {
       try { await audioContext.resume(); } catch (_) {}
