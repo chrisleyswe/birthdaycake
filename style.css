@@ -10,7 +10,7 @@ body {
   text-align: center;
   margin-top: 90px;
   font-family: "Arial Rounded MT Bold", "Comic Sans MS", system-ui, sans-serif;
-  font-size: 38px;
+  font-size: 40px;
   color: #FFD580;
   text-shadow: 0 2px 4px rgba(255, 200, 120, 0.7),
                0 0 12px rgba(255, 180, 80, 0.6),
@@ -20,8 +20,8 @@ body {
 /* Boo Boo Bear message */
 .candle-message {
   text-align: center;
-  margin-top: 12px;
-  margin-bottom: 44px;
+  margin-top: 32px;
+  margin-bottom: 74px;
   font-family: "Arial Rounded MT Bold", "Comic Sans MS", system-ui, sans-serif;
   font-size: 22px;
   color: #FFB6A1;
