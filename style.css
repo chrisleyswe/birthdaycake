@@ -1,11 +1,9 @@
-/* Page background */
 body {
   background-color: #333;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Greeting — golden glow */
 .greeting {
   text-align: center;
   margin-top: 90px;
@@ -16,8 +14,6 @@ body {
                0 0 12px rgba(255, 180, 80, 0.6),
                0 0 20px rgba(255, 160, 60, 0.5);
 }
-
-/* Boo Boo Bear message */
 .candle-message {
   text-align: center;
   margin-top: 32px;
@@ -37,7 +33,6 @@ body {
   text-shadow: 0 1px 3px rgba(255, 150, 120, 0.6);
 }
 
-/* Cake */
 .cake {
   position: absolute;
   width: 250px;
@@ -136,19 +131,17 @@ body {
 
 .candle.out .flame { display: none; }
 
-/* Flame */
 .flame {
   position: absolute;
   background-color: orange;
   width: 10px;
-  height: 25px;/* Page background */
+  height: 25px;
   body {
     background-color: #333;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
   
-  /* Greeting — golden glow */
   .greeting {
     text-align: center;
     margin-top: 90px;
@@ -160,7 +153,6 @@ body {
                  0 0 20px rgba(255, 160, 60, 0.5);
   }
   
-  /* Boo Boo Bear message */
   .candle-message {
     text-align: center;
     margin-top: 12px;
@@ -180,7 +172,6 @@ body {
     text-shadow: 0 1px 3px rgba(255, 150, 120, 0.6);
   }
   
-  /* Cake */
   .cake {
     position: absolute;
     width: 250px;
@@ -223,7 +214,7 @@ body {
   .icing {
     top: 2px;
     left: 5px;
-    background-color: #f0e4d0; /* vanilla cream */
+    background-color: #f0e4d0; 
     width: 240px;
     height: 90px;
     border-radius: 50%;
@@ -254,7 +245,6 @@ body {
   .drip2 { top: 69px; left: 181px; transform: skewY(-15deg); }
   .drip3 { top: 54px; left: 90px; width: 80px; border-bottom-left-radius: 40px; border-bottom-right-radius: 40px; }
   
-  /* Candle */
   .candle {
     position: absolute;
     background-color: #7b020b;
@@ -279,7 +269,7 @@ body {
   
   .candle.out .flame { display: none; }
   
-  /* Flame */
+  
   .flame {
     position: absolute;
     background-color: orange;
@@ -307,7 +297,6 @@ body {
     100% { transform: skewX(5deg);  }
   }
   
-  /* Invisible one-time overlay to capture the first tap on iOS */
   .gesture-gate {
     position: fixed;
     inset: 0;
