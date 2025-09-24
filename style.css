@@ -1,12 +1,15 @@
+/* Page */
 body {
   background-color: #333;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-/* Greeting — warm golden like the flame */
+/* Greeting — warm golden like the flame, lowered a bit */
 .greeting {
   text-align: center;
-  margin-top: 120px;  /* lowered */
-  font-family: "Comic Sans MS", "Arial Rounded MT Bold", cursive;
+  margin-top: 90px;  /* lowered */
+  font-family: "Arial Rounded MT Bold", "Comic Sans MS", system-ui, sans-serif;
   font-size: 40px;
   color: #FFD580; /* warm pastel golden */
   text-shadow: 0 2px 4px rgba(255, 200, 120, 0.7),
@@ -14,18 +17,18 @@ body {
                0 0 20px rgba(255, 160, 60, 0.5);
 }
 
-/* Boo Boo Bear message — soft peach with glow */
+/* Boo Boo Bear message — soft peach, lowered near cake */
 .candle-message {
   text-align: center;
-  margin-top: 82px;
-  margin-bottom: 120px;
-  font-family: 'Comic Sans MS', 'Arial Rounded MT Bold', cursive;
-  font-size: 24px;
+  margin-top: 12px;
+  margin-bottom: 44px; /* closer to cake but with breathing space */
+  font-family: "Arial Rounded MT Bold", "Comic Sans MS", system-ui, sans-serif;
+  font-size: 22px;
   color: #FFB6A1; /* pastel peach */
   background-color: rgba(255, 228, 210, 0.15);
   padding: 10px 20px;
   border-radius: 15px;
-  box-shadow: 0 4px 8px rgba(255, 182, 160, 0.4);
+  box-shadow: 0 4px 8px rgba(255, 182, 160, 0.35);
   width: fit-content;
   margin-left: auto;
   margin-right: auto;
@@ -33,6 +36,21 @@ body {
   font-weight: bold;
   text-shadow: 0 1px 3px rgba(255, 150, 120, 0.6);
 }
+
+/* Mic enable button (needed for iOS) */
+.mic-btn{
+  display:block;
+  margin: 0 auto 8px;
+  padding:10px 16px;
+  font-size:16px;
+  border-radius:12px;
+  border:none;
+  background:#FFD580; /* warm golden */
+  color:#553c13;
+  box-shadow:0 4px 10px rgba(0,0,0,.2);
+  cursor:pointer;
+}
+.mic-btn.hidden{ display:none; }
 
 /* Cake */
 .cake {
@@ -77,7 +95,7 @@ body {
 .icing {
   top: 2px;
   left: 5px;
-  background-color: #f0e4d0;
+  background-color: #f0e4d0; /* vanilla cream */
   width: 240px;
   height: 90px;
   border-radius: 50%;
