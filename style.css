@@ -1,180 +1,144 @@
-/* Page */
-body {
-  background-color: #333;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
+// Mobile-friendly mic start + adaptive blow detection
+document.addEventListener("DOMContentLoaded", function () {
+  const onlyCandle = document.getElementById("onlyCandle");
+  const startBtn = document.getElementById("startAudio");
 
-/* Greeting — warm golden like the flame, lowered a bit */
-.greeting {
-  text-align: center;
-  margin-top: 90px;  /* lowered */
-  font-family: "Arial Rounded MT Bold", "Comic Sans MS", system-ui, sans-serif;
-  font-size: 40px;
-  color: #FFD580; /* warm pastel golden */
-  text-shadow: 0 2px 4px rgba(255, 200, 120, 0.7),
-               0 0 12px rgba(255, 180, 80, 0.6),
-               0 0 20px rgba(255, 160, 60, 0.5);
-}
+  let audioContext, analyser, mic, rafId;
+  let baselineRMS = 0;
+  let baselineHF = 0;
+  let calibrated = false;
 
-/* Boo Boo Bear message — soft peach, lowered near cake */
-.candle-message {
-  text-align: center;
-  margin-top: 12px;
-  margin-bottom: 44px; /* closer to cake but with breathing space */
-  font-family: "Arial Rounded MT Bold", "Comic Sans MS", system-ui, sans-serif;
-  font-size: 22px;
-  color: #FFB6A1; /* pastel peach */
-  background-color: rgba(255, 228, 210, 0.15);
-  padding: 10px 20px;
-  border-radius: 15px;
-  box-shadow: 0 4px 8px rgba(255, 182, 160, 0.35);
-  width: fit-content;
-  margin-left: auto;
-  margin-right: auto;
-  border: 2px solid #FFD580;
-  font-weight: bold;
-  text-shadow: 0 1px 3px rgba(255, 150, 120, 0.6);
-}
+  // Compute RMS from time-domain samples
+  function computeRMS(uint8) {
+    let sumSq = 0;
+    for (let i = 0; i < uint8.length; i++) {
+      const v = (uint8[i] - 128) / 128; // 0..255 -> -1..1
+      sumSq += v * v;
+    }
+    return Math.sqrt(sumSq / uint8.length) * 100; // scale ~0–100
+  }
 
-/* Mic enable button (needed for iOS) */
-.mic-btn{
-  display:block;
-  margin: 0 auto 8px;
-  padding:10px 16px;
-  font-size:16px;
-  border-radius:12px;
-  border:none;
-  background:#FFD580; /* warm golden */
-  color:#553c13;
-  box-shadow:0 4px 10px rgba(0,0,0,.2);
-  cursor:pointer;
-}
-.mic-btn.hidden{ display:none; }
+  // Average of higher frequency bins for hiss
+  function computeHighFreqAvg(freqData) {
+    const start = Math.floor(freqData.length * 0.35);
+    const end = Math.floor(freqData.length * 0.9);
+    let sum = 0, n = 0;
+    for (let i = start; i < end; i++) { sum += freqData[i]; n++; }
+    return n ? sum / n : 0;
+  }
 
-/* Cake */
-.cake {
-  position: absolute;
-  width: 250px;
-  height: 200px;
-  top: 50%;
-  left: 50%;
-  margin-top: -70px;
-  margin-left: -125px;
-}
+  function startAnalyser(stream) {
+    audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    analyser = audioContext.createAnalyser();
+    analyser.fftSize = 512;                 // better resolution for phones
+    analyser.smoothingTimeConstant = 0.2;   // reduce jitter
 
-.plate {
-  width: 270px;
-  height: 110px;
-  position: absolute;
-  bottom: -10px;
-  left: -10px;
-  background-color: #ccc;
-  border-radius: 50%;
-  box-shadow: 0 2px 0 #b3b3b3, 0 4px 0 #b3b3b3, 0 5px 40px rgba(0, 0, 0, 0.5);
-}
+    mic = audioContext.createMediaStreamSource(stream);
+    mic.connect(analyser);
 
-.cake > * { position: absolute; }
+    calibrate().then(loopDetect);
+  }
 
-.layer {
-  width: 250px;
-  height: 100px;
-  border-radius: 50%;
-  background-color: #553c13;
-  box-shadow: 0 2px 0px #6a4b18, 0 4px 0px #33240b, 0 6px 0px #32230b,
-              0 8px 0px #31230b, 0 10px 0px #30220b, 0 12px 0px #2f220b,
-              0 14px 0px #2f210a, 0 16px 0px #2e200a, 0 18px 0px #2d200a,
-              0 20px 0px #2c1f0a, 0 22px 0px #2b1f0a, 0 24px 0px #2a1e09,
-              0 26px 0px #2a1d09, 0 28px 0px #291d09, 0 30px 0px #281c09;
-}
+  async function resumeContextIfNeeded() {
+    if (!audioContext) return;
+    if (audioContext.state === "suspended") {
+      try { await audioContext.resume(); } catch(e){}
+    }
+  }
 
-.layer-top { top: 0px; }
-.layer-middle { top: 33px; }
-.layer-bottom { top: 66px; }
+  // Calibrate noise floor (~1.2s)
+  function calibrate() {
+    calibrated = false;
+    const rmsBuf = [];
+    const hfBuf = [];
+    const td = new Uint8Array(analyser.fftSize);
+    const fd = new Uint8Array(analyser.frequencyBinCount);
 
-.icing {
-  top: 2px;
-  left: 5px;
-  background-color: #f0e4d0; /* vanilla cream */
-  width: 240px;
-  height: 90px;
-  border-radius: 50%;
-}
-.icing:before {
-  content: "";
-  position: absolute;
-  top: 4px;
-  right: 5px;
-  bottom: 6px;
-  left: 5px;
-  background-color: #f4ebdc;
-  box-shadow: 0 0 4px #f6efe3, 0 0 4px #f6efe3, 0 0 4px #f6efe3;
-  border-radius: 50%;
-  z-index: 1;
-}
+    return new Promise(resolve => {
+      const t0 = performance.now();
+      function step() {
+        analyser.getByteTimeDomainData(td);
+        analyser.getByteFrequencyData(fd);
+        rmsBuf.push(computeRMS(td));
+        hfBuf.push(computeHighFreqAvg(fd));
 
-.drip {
-  display: block;
-  width: 50px;
-  height: 60px;
-  border-bottom-left-radius: 25px;
-  border-bottom-right-radius: 25px;
-  background-color: #f0e4d0;
-}
+        if (performance.now() - t0 < 1200) {
+          requestAnimationFrame(step);
+        } else {
+          rmsBuf.sort((a,b)=>a-b); hfBuf.sort((a,b)=>a-b);
+          const midR = rmsBuf[Math.floor(rmsBuf.length/2)] || 0;
+          const midH = hfBuf[Math.floor(hfBuf.length/2)] || 0;
+          baselineRMS = midR;
+          baselineHF  = midH;
+          calibrated = true;
+          resolve();
+        }
+      }
+      step();
+    });
+  }
 
-.drip1 { top: 53px; left: 5px; transform: skewY(15deg); height: 48px; width: 40px; }
-.drip2 { top: 69px; left: 181px; transform: skewY(-15deg); }
-.drip3 { top: 54px; left: 90px; width: 80px; border-bottom-left-radius: 40px; border-bottom-right-radius: 40px; }
+  function isBlowing() {
+    const td = new Uint8Array(analyser.fftSize);
+    const fd = new Uint8Array(analyser.frequencyBinCount);
+    analyser.getByteTimeDomainData(td);
+    analyser.getByteFrequencyData(fd);
 
-/* ---- Centered candle ---- */
-.candle {
-  position: absolute;
-  background-color: #7b020b;
-  width: 12px;
-  height: 35px;
-  border-radius: 6px/3px;
-  top: 20px; /* sits nicely on the top layer */
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 10;
-}
-.candle:before {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 12px;
-  height: 6px;
-  border-radius: 50%;
-  background-color: #ad030f;
-}
+    const rms = computeRMS(td);
+    const hf  = computeHighFreqAvg(fd);
 
-.candle.out .flame { display: none; }
+    // Adaptive thresholds based on baseline
+    const rmsThresh = Math.max(baselineRMS + 8, 14);
+    const hfThresh  = Math.max(baselineHF  + 10, 18);
 
-/* ---- Flame ---- */
-.flame {
-  position: absolute;
-  background-color: orange;
-  width: 10px;
-  height: 25px;
-  border-radius: 8px 8px 8px 8px/20px 20px 8px 8px;
-  top: -34px;
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 10;
-  box-shadow:
-    0 0 10px rgba(255, 165, 0, 0.5),
-    0 0 20px rgba(255, 165, 0, 0.5),
-    0 0 60px rgba(255, 165, 0, 0.5),
-    0 0 80px rgba(255, 165, 0, 0.5);
-  transform-origin: 50% 90%;
-  animation: flicker 1s ease-in-out alternate infinite;
-}
+    const hissStrong = hf > hfThresh + 8;         // strong high-freq hiss
+    const combined   = (rms > rmsThresh) && (hf > hfThresh);
 
-@keyframes flicker {
-  0%   { transform: skewX(5deg);  box-shadow: 0 0 10px rgba(255,165,0,0.2), 0 0 20px rgba(255,165,0,0.2), 0 0 60px rgba(255,165,0,0.2), 0 0 80px rgba(255,165,0,0.2); }
-  25%  { transform: skewX(-5deg); box-shadow: 0 0 10px rgba(255,165,0,0.5), 0 0 20px rgba(255,165,0,0.5), 0 0 60px rgba(255,165,0,0.5), 0 0 80px rgba(255,165,0,0.5); }
-  50%  { transform: skewX(10deg); box-shadow: 0 0 10px rgba(255,165,0,0.3), 0 0 20px rgba(255,165,0,0.3), 0 0 60px rgba(255,165,0,0.3), 0 0 80px rgba(255,165,0,0.3); }
-  75%  { transform: skewX(-10deg);box-shadow: 0 0 10px rgba(255,165,0,0.4), 0 0 20px rgba(255,165,0,0.4), 0 0 60px rgba(255,165,0,0.4), 0 0 80px rgba(255,165,0,0.4); }
-  100% { transform: skewX(5deg);  box-shadow: 0 0 10px rgba(255,165,0,0.5), 0 0 20px rgba(255,165,0,0.5), 0 0 60px rgba(255,165,0,0.5), 0 0 80px rgba(255,165,0,0.5); }
-}
+    return hissStrong || combined;
+  }
+
+  function loopDetect() {
+    cancelAnimationFrame(rafId);
+    const tick = () => {
+      if (!onlyCandle.classList.contains("out") && calibrated) {
+        if (isBlowing()) {
+          onlyCandle.classList.add("out"); // hide flame
+        }
+      }
+      rafId = requestAnimationFrame(tick);
+    };
+    tick();
+  }
+
+  async function initMic() {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: {
+          echoCancellation: false,
+          noiseSuppression: false,
+          autoGainControl: false
+        }
+      });
+      startBtn.classList.add("hidden");
+      startAnalyser(stream);
+    } catch (err) {
+      alert("Mic permission failed. On iPhone/iPad, open in Safari over HTTPS and allow microphone.");
+      console.error(err);
+    }
+  }
+
+  // iOS/Safari: must start on a user gesture
+  startBtn.addEventListener("click", async () => {
+    await initMic();
+    await resumeContextIfNeeded();
+  });
+
+  // Also try resuming on any user interaction (safety)
+  document.body.addEventListener("touchend", resumeContextIfNeeded, { passive: true });
+  document.body.addEventListener("click",    resumeContextIfNeeded);
+
+  // Optional: tap cake to relight (uncomment if you want)
+  // document.querySelector(".cake").addEventListener("click", () => {
+  //   onlyCandle.classList.remove("out");
+  // });
+});
